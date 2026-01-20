@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  assetPrefix: '/ai-twitter-daily',
 }
 
 export default nextConfig
