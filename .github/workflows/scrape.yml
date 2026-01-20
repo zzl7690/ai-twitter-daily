@@ -1,0 +1,70 @@
+name: Scrape AI Tweets and Deploy
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  scrape-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Scrape tweets (manual mode)
+        run: |
+          echo "⚠️  Skipping automated scraping - requires manual login"
+          echo "Run locally with: npm run crawler"
+          echo "Or set up X_API_TOKEN and X_AUTHORIZATION in repository secrets"
+
+          if [ -f "public/data/tweets.json" ]; then
+            echo "✅ Using existing data file"
+          else
+            echo "⚠️  No data file found. Creating placeholder..."
+            mkdir -p public/data
+            echo '{"date":"'$(( $(date +%s) * 1000 ))'","tweets":[]}' > public/data/tweets.json
+          fi
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: scrape-and-deploy
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
